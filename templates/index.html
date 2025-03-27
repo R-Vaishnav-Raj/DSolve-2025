@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            display: none;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Deepfake Detection</h2>
+
+    <form id="upload-form">
+        <input type="file" id="image-input" accept="image/*" required>
+        <br><br>
+        <button type="submit">Analyze</button>
+    </form>
+
+    <img id="image-preview" alt="Uploaded Image Preview">
+
+    <div id="result"></div>
+
+    <script>
+        document.getElementById("image-input").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById("image-preview");
+                    img.src = e.target.result;
+                    img.style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById("upload-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const fileInput = document.getElementById("image-input").files[0];
+
+            if (!fileInput) {
+                alert("Please select an image.");
+                return;
+            }
+
+            formData.append("image", fileInput);
+
+            fetch("/predict", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById("result");
+                if (data.error) {
+                    resultDiv.innerHTML = `<span style="color: red;">Error: ${data.error}</span>`;
+                } else {
+                    const color = data.prediction === "Deepfake" ? "red" : "green";
+                    resultDiv.innerHTML = `<span style="color: ${color};">Prediction: ${data.prediction} (Confidence: ${data.confidence})</span>`;
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("result").innerHTML = "<span style='color: red;'>Failed to analyze image.</span>";
+            });
+        });
+    </script>
+
+</body>
+</html>
